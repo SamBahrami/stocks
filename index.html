@@ -64,20 +64,14 @@
       'use strict';
 
       const DEFAULT_PORTFOLIOS = [
-        {'name': 'Market ETFs', 'symbols': ['SPY', 'DIA', 'QQQ', 'IWM']},
-        {'name': 'Sector ETFs', 'symbols': ['XLF', 'XLK', 'XLV', 'XLP', 'XLY', 'XLE', 'XLB', 'XLI', 'XLU', 'XLRE']},
-        {'name': 'Banks', 'symbols': ['GS', 'MS', 'JPM', 'WFC', 'C', 'BAC', 'BCS', 'DB', 'CS', 'RBS']},
-        {'name': 'Tech', 'symbols': ['AAPL', 'GOOGL', 'MSFT', 'AMZN', 'FB', 'TWTR', 'NFLX', 'SNAP', 'SPOT', 'DBX', 'BABA', 'INTC', 'AMD', 'NVDA', 'ORCL']},
-        {'name': 'Bond ETFs', 'symbols': ['BND', 'BIV', 'JNK']},
-        {'name': 'Other ETFs', 'symbols': ['VOO', 'VTI', 'VGK', 'VPL', 'VWO', 'VDE', 'XOP', 'VFH', 'VHT', 'VIG', 'VYM', 'VAW', 'REM', 'XHB', 'GLD']},
-        {'name': 'Mortgage REITs', 'symbols': ['EFC', 'EARN', 'NLY', 'AGNC', 'CIM', 'TWO', 'NRZ']},
-        {'name': 'BigCos', 'symbols': ['XOM', 'WMT', 'JNJ', 'GE', 'T', 'KO', 'DIS', 'MCD', 'PG']}
+        {'name': 'Coins', 'symbols': ['1027']}
+
       ];
 
       const PORTFOLIOS = portfoliosFromQueryParams() || DEFAULT_PORTFOLIOS;
       const REFRESH_SECONDS = 10;
       const BATCH_SIZE = 100;
-      const BASE_URL = 'https://api.iextrading.com/1.0/stock/market/batch';
+      const BASE_URL = 'https://api.coinmarketcap.com/v2/ticker/1027/';
 
       let symbols = [];
       let containerDiv = document.querySelector('.stocks-container');
@@ -147,20 +141,25 @@
       function updateDataForBatch(symbols, addTitle) {
         let filters = ['latestPrice', 'change', 'changePercent', 'marketCap'];
         if (addTitle) filters.push('companyName');
-        let url = `${BASE_URL}?types=quote&symbols=${symbols.join(',')}&filter=${filters.join(',')}`;
+        // testing for coinmarketcap API URL
+        let url = `https://api.coinmarketcap.com/v2/ticker/1027/`;
 
         fetch(url).then(response => response.json()).then(json => {
           symbols.forEach(symbol => {
-            let data = json[symbol];
+            // Getting the ID of the stock, and trying to match it to the JSON returned
+            let data = json['data'];
             if (typeof(data) === 'undefined') return;
 
-            let formattedPrice = formatQuote(data.quote.latestPrice);
-            let formattedChange = data.quote.change.toLocaleString('en', {'minimumFractionDigits': 2});
-            let formattedChangePercent = (data.quote.changePercent * 100).toFixed(1) + '%';
-            let formattedMarketCap = formatMarketCap(data.quote.marketCap);
-            let rgbColor = data.quote.changePercent > 0 ? '0,255,0' : '255,0,0';
-            let rgbOpacity = Math.min(Math.abs(data.quote.changePercent) * 20, 1);
+            // Extracting data
+            let formattedPrice = formatQuote(data.quotes.USD.price);
+            // Need to use maths to determine the price change
+            let formattedChange = data.quotes.USD.percent_change_24h * data.quotes.USD.price;
+            let formattedChangePercent = (data.quotes.USD.percent_change_24h + '%');
+            let formattedMarketCap = formatMarketCap(data.quotes.USD.market_cap);
+            let rgbColor = data.quotes.USD.percent_change_24h > 0 ? '0,255,0' : '255,0,0';
+            let rgbOpacity = Math.min(Math.abs(data.quotes.USD.percent_change_24h) * 20, 1);
 
+            // Applying data to the HTML I believe
             document.querySelectorAll(`[data-symbol="${symbol}"] .stock-price`).forEach(e => {
               e.innerHTML = formattedPrice;
               e.setAttribute('style', `background-color: rgba(${rgbColor}, ${rgbOpacity})`);
@@ -183,7 +182,7 @@
 
             if (addTitle) {
               document.querySelectorAll(`[data-symbol="${symbol}"] .stock-symbol a`).forEach(e => {
-                e.setAttribute('title', data.quote.companyName);
+                e.setAttribute('title', data.name);
               });
             }
           });
