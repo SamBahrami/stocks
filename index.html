@@ -54,7 +54,7 @@
     <script>
       'use strict';
 
-      // Numbers must correspond to the coinmarketcap number correlating with each coin in its API
+      // Numbers must correspond to the coinmarketcap backend API
       const CRYPTOCURRENCY_PORTFOLIOS = [
         {'name': 'Holding Cryptocurrencies', 'symbols': ['1','1027']},
         {'name': 'Other Cryptocurrencies', 'symbols': ['52','328','74','1904','1710','825']}
@@ -139,7 +139,6 @@
           let symbolsBatch = symbols.slice(i * BATCH_SIZE, (i + 1) * BATCH_SIZE);
           updateDataForBatch(symbolsBatch, addTitle);
         }
-        // Update ASX stock data
         updatedDiv.innerHTML = `Data updated at ${(new Date()).toLocaleString()}`;
       }
 
