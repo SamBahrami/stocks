@@ -50,21 +50,11 @@
 
   <body>
     <div class="stocks-container"></div>
-
-    <p class="attribution">
-      Data provided for free by <a href="https://iextrading.com/developer/" target="_blank">IEX</a>.
-      Subject to <a href="https://iextrading.com/api-exhibit-a/" target="_blank">IEX Exhibit A</a>.
-    </p>
-
-    <p class="updated-timestamp"></p>
-
-    <p>Customize <a href="https://github.com/toddwschneider/stocks" target="_blank">on GitHub</a></p>
-
     <script>
       'use strict';
 
       const DEFAULT_PORTFOLIOS = [
-        {'name': 'Coins', 'symbols': ['1027']}
+        {'name': 'Cryptocurrencies', 'symbols': ['1','2', '1027']}
 
       ];
 
@@ -90,7 +80,7 @@
               <tr>
                 <th></th>
                 <th class="stock-price">Last</th>
-                <th class="stock-change">Change</th>
+                <th class="stock-change">Change (24h)</th>
                 <th class="stock-change-pct">Change%</th>
                 <th class="stock-mkt-cap">Mkt Cap</th>
               </tr>
@@ -104,7 +94,7 @@
 
           let html = `
             <tr data-symbol="${symbol}">
-              <td class="stock-symbol"><a href="${symbolUrl(symbol)}" target="_blank">${symbol}</a></td>
+              <td class="stock-symbol">/td>
               <td class="stock-price"></td>
               <td class="stock-change"></td>
               <td class="stock-change-pct"></td>
@@ -127,6 +117,7 @@
         containerDiv.appendChild(portfolioDiv);
       }
 
+      // batch updates data
       function updateData(addTitle) {
         let numberOfBatches = Math.ceil(symbols.length / BATCH_SIZE);
 
@@ -138,56 +129,61 @@
         updatedDiv.innerHTML = `Data updated at ${(new Date()).toLocaleString()}`;
       }
 
+      // Iterates through a batch and updates each table entry with relevant cryptocurrency prices
       function updateDataForBatch(symbols, addTitle) {
         let filters = ['latestPrice', 'change', 'changePercent', 'marketCap'];
         if (addTitle) filters.push('companyName');
-        // testing for coinmarketcap API URL
-        let url = `https://api.coinmarketcap.com/v2/ticker/1027/`;
 
-        fetch(url).then(response => response.json()).then(json => {
-          symbols.forEach(symbol => {
-            // Getting the ID of the stock, and trying to match it to the JSON returned
-            let data = json['data'];
-            if (typeof(data) === 'undefined') return;
+        // For each symbol receive new stock information
+        // and update table with data
+        symbols.forEach(symbol => {
 
-            // Extracting data
-            let formattedPrice = formatQuote(data.quotes.USD.price);
-            // Need to use maths to determine the price change
-            let formattedChange = data.quotes.USD.percent_change_24h * data.quotes.USD.price;
-            let formattedChangePercent = (data.quotes.USD.percent_change_24h + '%');
-            let formattedMarketCap = formatMarketCap(data.quotes.USD.market_cap);
-            let rgbColor = data.quotes.USD.percent_change_24h > 0 ? '0,255,0' : '255,0,0';
-            let rgbOpacity = Math.min(Math.abs(data.quotes.USD.percent_change_24h) * 20, 1);
+          let url = `https://api.coinmarketcap.com/v2/ticker/${symbol}/`;
 
-            // Applying data to the HTML I believe
-            document.querySelectorAll(`[data-symbol="${symbol}"] .stock-price`).forEach(e => {
-              e.innerHTML = formattedPrice;
-              e.setAttribute('style', `background-color: rgba(${rgbColor}, ${rgbOpacity})`);
-            });
+          fetch(url).then(response => response.json()).then(json => {
+              // Extracting data from JSON
+              let data = json['data'];
+              if (typeof(data) === 'undefined') return;
+              let formattedPrice = formatQuote(data.quotes.USD.price);
+              let formattedChange = ((data.quotes.USD.price - (data.quotes.USD.price / (100 + data.quotes.USD.percent_change_24h) * 100))).toFixed(2);
+              let formattedChangePercent = (data.quotes.USD.percent_change_24h + '%');
+              let formattedMarketCap = formatMarketCap(data.quotes.USD.market_cap);
+              let rgbColor = data.quotes.USD.percent_change_24h > 0 ? '0,255,0' : '255,0,0';
+              let rgbOpacity = Math.min(Math.abs(data.quotes.USD.percent_change_24h) * 20, 1);
 
-            document.querySelectorAll(`[data-symbol="${symbol}"] .stock-change`).forEach(e => {
-              e.innerHTML = formattedChange;
-              e.setAttribute('style', `background-color: rgba(${rgbColor}, ${rgbOpacity})`);
-            });
-
-            document.querySelectorAll(`[data-symbol="${symbol}"] .stock-change-pct`).forEach(e => {
-              e.innerHTML = formattedChangePercent;
-              e.setAttribute('style', `background-color: rgba(${rgbColor}, ${rgbOpacity})`);
-            });
-
-            document.querySelectorAll(`[data-symbol="${symbol}"] .stock-mkt-cap`).forEach(e => {
-              e.innerHTML = formattedMarketCap;
-              e.setAttribute('style', `background-color: rgba(${rgbColor}, ${rgbOpacity})`);
-            });
-
-            if (addTitle) {
-              document.querySelectorAll(`[data-symbol="${symbol}"] .stock-symbol a`).forEach(e => {
-                e.setAttribute('title', data.name);
+              // Applying data to the HTML table
+              document.querySelectorAll(`[data-symbol="${symbol}"] .stock-symbol`).forEach(e => {
+                e.innerHTML = data.name;
               });
-            }
+
+              document.querySelectorAll(`[data-symbol="${symbol}"] .stock-price`).forEach(e => {
+                e.innerHTML = formattedPrice;
+                e.setAttribute('style', `background-color: rgba(${rgbColor}, ${rgbOpacity})`);
+              });
+
+              document.querySelectorAll(`[data-symbol="${symbol}"] .stock-change`).forEach(e => {
+                e.innerHTML = formattedChange;
+                e.setAttribute('style', `background-color: rgba(${rgbColor}, ${rgbOpacity})`);
+              });
+
+              document.querySelectorAll(`[data-symbol="${symbol}"] .stock-change-pct`).forEach(e => {
+                e.innerHTML = formattedChangePercent;
+                e.setAttribute('style', `background-color: rgba(${rgbColor}, ${rgbOpacity})`);
+              });
+
+              document.querySelectorAll(`[data-symbol="${symbol}"] .stock-mkt-cap`).forEach(e => {
+                e.innerHTML = formattedMarketCap;
+                e.setAttribute('style', `background-color: rgba(${rgbColor}, ${rgbOpacity})`);
+              });
+
+              if (addTitle) {
+                document.querySelectorAll(`[data-symbol="${symbol}"] .stock-symbol a`).forEach(e => {
+                  e.setAttribute('title', data.name);
+                });
+              }
+            });
           });
-        });
-      }
+        }
 
       function portfoliosFromQueryParams() {
         if (!window.location.search) return;
